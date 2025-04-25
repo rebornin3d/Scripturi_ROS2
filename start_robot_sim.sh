@@ -1,47 +1,46 @@
 #!/bin/bash
 
-# Set the TurtleBot3 model
+# Set the TurtleBot3 model (change to 'waffle' if needed)
 export TURTLEBOT3_MODEL=burger
 
-# 1. Launch Gazebo with TurtleBot3
+# Function to check if a ROS 2 node is running
+check_node() {
+    if ros2 node list | grep -q "$1"; then
+        echo "[SUCCESS] $1 is running."
+    else
+        echo "[ERROR] $1 failed to start!"
+        exit 1
+    fi
+}
+
+# Launch Gazebo with TurtleBot3 in a new terminal
 gnome-terminal --title="Gazebo" -- bash -c "
     echo 'Starting Gazebo with TurtleBot3...';
     ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py;
     exec bash"
 
-# Wait for Gazebo to initialize
-sleep 5
+sleep 5  # Wait for Gazebo to initialize
 
-# 2. Launch Nav2 (requires Gazebo already running)
-gnome-terminal --title="Nav2" -- bash -c "
-    echo 'Starting Nav2...';
-    ros2 launch nav2_bringup navigation_launch.py use_sim_time:=true;
-    exec bash"
-
-# Launch AMCL (Localization)
-gnome-terminal --title="AMCL" -- bash -c "
-    echo 'Starting AMCL...';
-    ros2 launch nav2_bringup localization_launch.py use_sim_time:=true;
-    exec bash"
-sleep 2  # Wait for AMCL    
-
-# Wait for Nav2 to initialize
-sleep 3
-
-# 3. Launch RViz2 with Nav2 plugins
+# Launch RViz2 in another terminal
 gnome-terminal --title="RViz2" -- bash -c "
     echo 'Starting RViz2...';
-    ros2 launch nav2_bringup rviz_launch.py;
+    ros2 launch turtlebot3_bringup rviz2.launch.py;
     exec bash"
 
-# 4. Launch teleop keyboard (optional)
+sleep 3  # Wait for RViz2 to start
+
+# Launch teleop keyboard in a third terminal
 gnome-terminal --title="Teleop" -- bash -c "
     echo 'Starting Teleop Keyboard...';
     ros2 run turtlebot3_teleop teleop_keyboard;
     exec bash"
 
+# Verify critical nodes are running
+check_node "gazebo"
+check_node "rviz2"
+check_node "teleop_keyboard"
+
 echo -e "\n\033[1;32mSimulation is ready!\033[0m"
-echo "- Gazebo: Robot and world simulation."
-echo "- Nav2: Navigation stack (planner, controller, AMCL)."
-echo "- RViz2: Visualization with Nav2 plugins."
-echo "- Teleop: Manual control (W/A/S/D)."
+echo "- Gazebo: Visualize the robot and world."
+echo "- RViz2: View LIDAR, TF, and sensor data."
+echo "- Teleop: Use W/A/S/D to move the robot."
